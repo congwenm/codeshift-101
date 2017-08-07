@@ -1,4 +1,4 @@
-// jscodeshift -t signature-change.js input.js -d -p)
+// jscodeshift -t signature-change.js input.js -d -p
 export default (fileInfo, api) => {
   const j = api.jscodeshift;
   const root = j(fileInfo.source);
@@ -16,6 +16,8 @@ export default (fileInfo, api) => {
     .get(0)
     .node.name
 
+  const argKeys = ['color', 'make', 'model', 'year', 'miles', 'bedliner', 'alarm']
+
   // find where `.factory` is being called
   return root.find(j.CallExpression, {
     callee: {
@@ -30,9 +32,18 @@ export default (fileInfo, api) => {
   })
     .replaceWith(nodePath => {
       const { node } = nodePath
-      node.arguments = [{ foo: 'bar' }]
+      const object = j.objectExpression(
+        node.arguments.map((arg, i) =>
+          j.property(
+            'init',
+            j.identifier(argKeys[i]),
+            j.literal(arg.value)
+          )
+        )
+      )
+      node.arguments = [object]
       return node
     })
-    .toSource()
+    .toSource({ quote: 'single', trailingComma: true })
 };
 
